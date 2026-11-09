@@ -768,6 +768,17 @@ RUN source ${OF_BASHRC_FILE} ${BASHRC_OPTIONS} \
 # As pipefail is enabled, any compilation failure in this pass should stop the building process.
 ARG PV_PASS_NUMBER="authoritative"
 ARG PV_PASS_TASKS="${PV_COMPILE_TASKS}"
+
+# GCC 13 compatibility: explicitly include fixed-width integer declarations
+# in ParaView 5.11.2's bundled PROJ header.
+RUN source ${OF_BASHRC_FILE} ${BASHRC_OPTIONS} \
+ && proj_header="$WM_THIRD_PARTY_DIR/sources/paraview/ParaView-v5.11.2/VTK/ThirdParty/libproj/vtklibproj/src/proj_json_streaming_writer.hpp" \
+ && test -f "$proj_header" \
+ && if ! grep -q '^#include <cstdint>' "$proj_header"; then \
+      sed -i '1i#include <cstdint>' "$proj_header"; \
+    fi \
+ && grep -n '^#include <cstdint>' "$proj_header"
+
 RUN source ${OF_BASHRC_FILE} ${BASHRC_OPTIONS} \
  && cd $WM_THIRD_PARTY_DIR \
  && export QT_SELECT=qt5 \
