@@ -779,6 +779,11 @@ RUN source ${OF_BASHRC_FILE} ${BASHRC_OPTIONS} \
     fi \
  && grep -n '^#include <cstdint>' "$proj_header"
 
+# Use the existing external mpi4py installation.
+# Check the version and MPI import before configuring ParaView.
+RUN source ${OF_BASHRC_FILE} ${BASHRC_OPTIONS} \
+ && python3 -c 'import mpi4py; from mpi4py import MPI; assert mpi4py.__version__ == "4.1.2", mpi4py.__version__; print("mpi4py:", mpi4py.__version__); print("Location:", mpi4py.__file__); print(MPI.Get_library_version())'
+
 RUN source ${OF_BASHRC_FILE} ${BASHRC_OPTIONS} \
  && cd $WM_THIRD_PARTY_DIR \
  && export QT_SELECT=qt5 \
@@ -788,12 +793,16 @@ RUN source ${OF_BASHRC_FILE} ${BASHRC_OPTIONS} \
  && echo "Starting authoritative ParaView compilation pass" \
  && echo "CMAKE_BUILD_PARALLEL_LEVEL=$CMAKE_BUILD_PARALLEL_LEVEL" \
  && ./makeParaView \
+      -config \
       -rebuild \
       -mpi \
       -python \
       -python-lib "$PYTHON_LIB" \
+      -DPython3_EXECUTABLE=/usr/bin/python3 \
+      -DVTK_MODULE_USE_EXTERNAL_VTK_mpi4py=ON \
+      -DMPI_C_COMPILER="$(command -v mpicc)" \
+      -DMPI_CXX_COMPILER="$(command -v mpicxx)" \
       2>&1 | tee log.makePV.AuthoritativeSummary
-
 
 #---------------------------------------------------------------
 #---------------------------------------------------------------
